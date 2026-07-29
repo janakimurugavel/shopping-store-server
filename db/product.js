@@ -11,4 +11,9 @@ let products = [
 
     },
 ];
-module.exports = products;
+let categories = [
+    { id: 1, name: "Grocery" },
+    { id: 2, name: "Electronics" },
+    { id: 3, name: "Clothing" },
+];
+module.exports = { products, categories };
