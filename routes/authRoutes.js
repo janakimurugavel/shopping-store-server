@@ -1,0 +1,11 @@
+
+const express = require("express");
+const router = express.Router();
+const jwt = require('jsonwebtoken');
+const requireAdminKey = require("../middleware/adminMiddleware");
+const { getAdminDashboard, loginAdmin } = require("../controller/authController");
+
+router.get("/admin/dashboard", requireAdminKey, getAdminDashboard);
+router.post('/admin/login', loginAdmin);
+
+module.exports = router;
