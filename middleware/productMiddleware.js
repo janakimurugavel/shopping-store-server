@@ -1,48 +1,43 @@
-const products = require("../db/product");
-function validateProduct(req, res, next) {
+const Product = require("../models/Product");
+const { connectToDatabase,
+    closeDatabaseConnection } = require("../config/db");
+async function validateProduct(req, res, next) {
     try {
         const { name, price, stock } = req.body;
 
-        // Check required fields
-        if (!name || price === undefined || stock === undefined) {
+        if (!name || typeof name !== "string") {
             return res.status(400).json({
                 success: false,
-                message: "Name, price and stock are required"
+                message: "Name is required"
             });
         }
 
-        // Check duplicate name
-        const existingName = products.find(
-            (product) => product.name.toLowerCase() === name.toLowerCase()
-        );
-
-        if (existingName) {
+        if (price === undefined || stock === undefined) {
             return res.status(400).json({
                 success: false,
-                message: "Product name already exists"
+                message: "Price and stock are required"
             });
         }
 
-        // Check price
-        if (price < 0) {
-            return res.status(400).json({
-                success: false,
-                message: "Product price cannot be less than 0"
-            });
-        }
+        //const db = getDB();
 
-        // Check stock
-        if (stock < 0) {
+        const existingProduct = await Product.findOne({ name });
+
+        if (existingProduct) {
             return res.status(400).json({
                 success: false,
-                message: "Product stock cannot be less than 0"
+                message: "Product already exists"
             });
         }
 
         next();
-    }
-    catch {
-        res.status(500).json({ success: false, message: "Internal server error" });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
     }
 }
 function validateUpdateProduct(req, res, next) {
@@ -50,20 +45,37 @@ function validateUpdateProduct(req, res, next) {
         const id = parseInt(req.params.id);
         const product = products.find((item) => item.id === id);
         if (!product) {
-            res.json({ success: false, message: "product not found" });
+            return res.status(404).json({ success: false, message: "product not found" });
         }
         const name = req.body.name;
+        // Check name
+        if (
+            !name ||
+            typeof name !== "string" ||
+            name.trim() === ""
+        ) {
+            return res.status(400).json({
+                success: false,
+                message: "Name is required and must be a non-empty string"
+            });
+        }
         const existingName = products.find((product) => product.name.toLowerCase() === name.toLowerCase());
         if (existingName) {
             return res.status(400).json({ success: false, message: "product name already exists" });
         }
         const price = req.body.price;
-        if (price < 0) {
-            return res.status(400).json({ success: false, message: "product price cannot less than 0" });
+        if (typeof price !== "number" || price < 0) {
+            return res.status(400).json({
+                success: false,
+                message: "Price must be a non-negative number"
+            });
         }
         const stock = req.body.stock;
-        if (stock < 0) {
-            return res.status(400).json({ success: false, message: "product stock cannot less than 0" });
+        if (!Number.isInteger(stock) || stock < 0) {
+            return res.status(400).json({
+                success: false,
+                message: "Stock must be a non-negative integer"
+            });
         }
         req.product = product;
         next();

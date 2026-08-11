@@ -1,11 +1,24 @@
 const express = require("express");
-const categoryController = require("../controller/categoryController");
+const requireAdminKey = require("../middleware/adminMiddleware");
+const {
+    validateCategory,
+    validateUpdateCategory,
+} = require("../middleware/categoryMiddleware");
+const {
+    getAllCategories,
+    getCategoryById,
+    createCategory,
+    updateCategory,
+    deleteCategory,
+} = require("../controller/categoryController");
+
 const router = express.Router();
 
-router.get("/", categoryController.categoryController);
-router.get("/:id", categoryController.categoryById);
-router.post("/", categoryController.validateCategory);
-router.patch("/:id", categoryController.updateCategory);
-router.delete("/:id", categoryController.deleteCategory);
+router.get("/", getAllCategories);
+router.get("/:id", getCategoryById);
+
+router.post("/", validateCategory, createCategory);
+router.patch("/:id", validateUpdateCategory, updateCategory);
+router.delete("/:id", deleteCategory);
 
 module.exports = router;

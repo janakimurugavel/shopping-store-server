@@ -6,6 +6,7 @@ const requireAdminKey = require("../middleware/adminMiddleware");
 const { getAdminDashboard, loginAdmin } = require("../controller/authController");
 
 router.get("/admin/dashboard", requireAdminKey, getAdminDashboard);
+//router.post("/register", register);
 router.post('/admin/login', loginAdmin);
 
 module.exports = router;

@@ -1,9 +1,12 @@
 const express = require("express");
 const requireAdminKey = require("../middleware/adminMiddleware");
 const router = express.Router();
+const { connectToDatabase,
+    closeDatabaseConnection } = require("../config/db");
 const { validateUpdateProduct, validateProduct } = require("../middleware/productMiddleware");
 const { updateProduct, getOutOfStockProducts, getAllProducts, getProductById, getProductsByCategory, addProduct, deleteProduct } = require("../controller/productController");
-const products = require("../db/product");
+
+
 
 router.get('/', getAllProducts);
 
@@ -23,6 +26,6 @@ router.post("/", validateProduct, addProduct);
 router.put("/:id", validateUpdateProduct, updateProduct);
 
 // DELETE endpoint: removes a product
-//router.delete('/:id', deleteProduct)
 router.delete("/:id", requireAdminKey, deleteProduct);
+
 module.exports = router;

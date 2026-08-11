@@ -1,99 +1,169 @@
-const { categories } = require("../db/product");
+const mongoose = require("mongoose");
+const Category = require("../models/Category");
+const Product = require("../models/Product");
 
-const categoryController = (req, res) => {
+const getAllCategories = async (req, res) => {
     try {
-        res.json({ success: true, data: categories });
+        const categories = await Category.find();
+        res.status(200).json({ success: true, data: categories });
     }
     catch (error) {
         res.status(500).json({ success: false, message: error?.message || "Internal server error" });
     }
 };
 
-const categoryById = (req, res) => {
+const getCategoryById = async (req, res) => {
     try {
-        const id = Number(req.params.id);
-        const category = categories.find((item) => item.id === id);
+        if (!mongoose.isValidObjectId(req.params.id)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid category ID",
+            });
+        }
+        const category = await Category.findById(req.params.id);
         if (!category) {
-            return res.status(404).json({ success: false, message: "Category not found" });
+            return res.status(404).json({
+                success: false,
+                message: "Category not found",
+            });
+
+            return res.status(200).json({
+                success: true,
+                data: category,
+            });
         }
-        res.json({ success: true, data: category });
     }
     catch (error) {
         res.status(500).json({ success: false, message: error?.message || "Internal server error" });
     }
 };
 
-const validateCategory = (req, res) => {
+const createCategory = async (req, res) => {
     try {
-        const name = req.body.name?.trim();
+        const category = await Category.create({
+            name: req.body.name,
+        });
 
-        if (!name) {
-            return res.status(400).json({ success: false, message: "Category name is required" });
+        return res.status(201).json({
+            success: true,
+            data: category,
+            message: "Category created successfully",
+        });
+    } catch (error) {
+        if (error.code === 11000) {
+            return res.status(409).json({
+                success: false,
+                message: "Category already exists",
+            });
         }
 
-        const exists = categories.some((item) => item.name.toLowerCase() === name.toLowerCase());
-        if (exists) {
-            return res.status(400).json({ success: false, message: "Category already exists" });
-        }
-
-        const newCategory = {
-            id: categories.length ? categories[categories.length - 1].id + 1 : 1,
-            name
-        };
-
-        categories.push(newCategory);
-
-        res.status(201).json({ success: true, data: newCategory, message: "Category created" });
-    }
-    catch (error) {
-        res.status(500).json({ success: false, message: error?.message || "Internal server error" });
+        return res.status(400).json({
+            success: false,
+            message: error.message || "Could not create category",
+        });
     }
 };
 
-const updateCategory = (req, res) => {
+// const validateCategory = (req, res) => {
+//     try {
+//         const name = req.body.name?.trim();
+
+//         const newCategory = {
+//             id: categories.length ? categories[categories.length - 1].id + 1 : 1,
+//             name
+//         };
+
+//         categories.push(newCategory);
+
+//         res.status(201).json({ success: true, data: newCategory, message: "Category created" });
+//     }
+//     catch (error) {
+//         res.status(500).json({ success: false, message: error?.message || "Internal server error" });
+//     }
+// };
+
+const updateCategory = async (req, res) => {
     try {
-        const id = Number(req.params.id);
-        const category = categories.find((item) => item.id === id);
+        if (!mongoose.isValidObjectId(req.params.id)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid category ID",
+            });
+        }
+
+        const category = await Category.findByIdAndUpdate(
+            req.params.id,
+            { name: req.body.name },
+            { new: true, runValidators: true }
+        );
 
         if (!category) {
-            return res.status(404).json({ success: false, message: "Category not found" });
+            return res.status(404).json({
+                success: false,
+                message: "Category not found",
+            });
         }
 
-        const newName = req.body.name?.trim();
-        if (!newName) {
-            return res.status(400).json({ success: false, message: "Category name is required" });
+        return res.status(200).json({
+            success: true,
+            data: category,
+            message: "Category updated successfully",
+        });
+    } catch (error) {
+        if (error.code === 11000) {
+            return res.status(409).json({
+                success: false,
+                message: "Category already exists",
+            });
         }
 
-        const exists = categories.some((item) => item.id !== id && item.name.toLowerCase() === newName.toLowerCase());
-        if (exists) {
-            return res.status(400).json({ success: false, message: "Category already exists" });
-        }
-
-        category.name = newName;
-
-        res.json({ success: true, data: category, message: "Category updated" });
-    }
-    catch (error) {
-        res.status(500).json({ success: false, message: error?.message || "Internal server error" });
+        return res.status(400).json({
+            success: false,
+            message: error.message || "Could not update category",
+        });
     }
 };
 
-const deleteCategory = (req, res) => {
+const deleteCategory = async (req, res) => {
     try {
-        const id = Number(req.params.id);
-        const index = categories.findIndex((item) => item.id === id);
+        const { id } = req.params;
 
-        if (index === -1) {
-            return res.status(404).json({ success: false, message: "Category not found" });
+        if (!mongoose.isValidObjectId(id)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid category ID",
+            });
         }
 
-        const deletedCategory = categories.splice(index, 1)[0];
+        const productExists = await Product.exists({ category: id });
 
-        res.json({ success: true, data: deletedCategory, message: "Category removed" });
-    }
-    catch (error) {
-        res.status(500).json({ success: false, message: error?.message || "Internal server error" });
+        if (productExists) {
+            return res.status(409).json({
+                success: false,
+                message: "Cannot delete a category that still has products",
+            });
+        }
+
+        const category = await Category.findByIdAndDelete(id);
+
+        if (!category) {
+            return res.status(404).json({
+                success: false,
+                message: "Category not found",
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            data: category,
+            message: "Category deleted successfully",
+        });
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: error.message || "Internal server error",
+        });
     }
 };
 
-module.exports = { categoryController, categoryById, validateCategory, updateCategory, deleteCategory };
+module.exports = { getAllCategories, getCategoryById, createCategory, updateCategory, deleteCategory };
