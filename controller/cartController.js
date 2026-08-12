@@ -3,14 +3,14 @@ const Cart = require("../models/Cart");
 const getCartItems = async (req, res) => {
     try {
         const cart = await Cart.findOne({
-            userId: req.params.userId,
+            userId: req.user.userId,
         }).populate("items.productId");
 
         if (!cart) {
             return res.status(200).json({
                 success: true,
                 data: {
-                    userId: req.params.userId,
+                    userId: req.user.userId,
                     items: [],
                 },
             });
@@ -29,7 +29,7 @@ const getCartItems = async (req, res) => {
 };
 const addCartItem = async (req, res) => {
     try {
-        const { userId } = req.params;
+        const userId = req.user.userId;
         const { product } = req;
         const quantity = Number(req.body.quantity ?? 1);
 
@@ -86,7 +86,8 @@ const addCartItem = async (req, res) => {
 };
 const updateCartItem = async (req, res) => {
     try {
-        const { userId, productId } = req.params;
+        const userId = req.user.userId;
+        const { productId } = req.params;
         const quantity = Number(req.body.quantity);
         const { product } = req;
 
@@ -135,7 +136,8 @@ const updateCartItem = async (req, res) => {
 };
 const deleteCartItem = async (req, res) => {
     try {
-        const { userId, productId } = req.params;
+        const userId = req.user.userId;
+        const { productId } = req.params;
 
         const cart = await Cart.findOne({ userId });
 
