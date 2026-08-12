@@ -12,7 +12,8 @@ const getOutOfStockProducts = async (req, res) => {
 }
 const getAllProducts = async (req, res) => {
     try {
-        const products = await Product.find();
+        // const products = await Product.find();
+        const products = await Product.find().populate("category");
         res.status(200).json({ success: true, data: products });
     }
     catch (error) {
