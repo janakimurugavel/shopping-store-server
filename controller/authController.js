@@ -1,6 +1,8 @@
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const User = require("../models/User");
+const { sendWelcomeEmail } = require("../services/emailService");
+
 const getAdminDashboard = (req, res) => {
     res.json({
         success: true,
@@ -36,7 +38,17 @@ const registerUser = async (req, res) => {
             email,
             password: hashedPassword,
         });
-
+        try {
+            await sendWelcomeEmail({
+                to: user.email,
+                name: user.name,
+            });
+        } catch (emailError) {
+            console.error(
+                "Welcome email could not be sent:",
+                emailError.response?.body || emailError.message
+            );
+        }
         return res.status(201).json({
             success: true,
             message: "User registered successfully",
