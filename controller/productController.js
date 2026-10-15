@@ -77,7 +77,10 @@ const addProduct = async (req, res) => {
             name: req.body.name,
             price: req.body.price,
             stock: req.body.stock,
-            category: req.body.category
+            category: req.body.category,
+            image: req.file
+                ? `/uploads/products/${req.file.filename}`
+                : "",
         });
 
         return res.status(201).json({
@@ -105,7 +108,10 @@ const updateProduct = async (req, res) => {
 
         const product = await Product.findByIdAndUpdate(
             req.params.id,
-            req.body,
+            {
+                ...req.body,
+                ...(req.file ? { image: `/uploads/products/${req.file.filename}` } : {}),
+            },
             {
                 new: true,
                 runValidators: true,

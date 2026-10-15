@@ -1,6 +1,6 @@
 const Product = require("../models/Product");
-const { connectToDatabase,
-    closeDatabaseConnection } = require("../config/db");
+const mongoose = require("mongoose");
+
 async function validateProduct(req, res, next) {
     try {
         const { name, price, stock } = req.body;
@@ -40,48 +40,73 @@ async function validateProduct(req, res, next) {
         });
     }
 }
-function validateUpdateProduct(req, res, next) {
+async function validateUpdateProduct(req, res, next) {
     try {
-        const id = parseInt(req.params.id);
-        const product = products.find((item) => item.id === id);
+        const id = req.params.id;
+        if (!mongoose.isValidObjectId(id)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid product ID"
+            });
+        }
+
+        const product = await Product.findById(id);
         if (!product) {
-            return res.status(404).json({ success: false, message: "product not found" });
+            return res.status(404).json({ success: false, message: "Product not found" });
         }
-        const name = req.body.name;
-        // Check name
-        if (
-            !name ||
-            typeof name !== "string" ||
-            name.trim() === ""
-        ) {
+
+        if (req.body.name !== undefined) {
+            const name = req.body.name;
+            if (typeof name !== "string" || name.trim() === "") {
+                return res.status(400).json({
+                    success: false,
+                    message: "Name must be a non-empty string"
+                });
+            }
+
+            const existingName = await Product.findOne({
+                name: name.trim(),
+                _id: { $ne: id }
+            });
+            if (existingName) {
+                return res.status(400).json({ success: false, message: "Product name already exists" });
+            }
+            req.body.name = name.trim();
+        }
+
+        if (req.body.price !== undefined) {
+            const price = Number(req.body.price);
+            if (!Number.isFinite(price) || price < 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Price must be a non-negative number"
+                });
+            }
+            req.body.price = price;
+        }
+
+        if (req.body.stock !== undefined) {
+            const stock = Number(req.body.stock);
+            if (!Number.isInteger(stock) || stock < 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Stock must be a non-negative integer"
+                });
+            }
+            req.body.stock = stock;
+        }
+
+        if (req.body.category !== undefined && !mongoose.isValidObjectId(req.body.category)) {
             return res.status(400).json({
                 success: false,
-                message: "Name is required and must be a non-empty string"
+                message: "Invalid category ID"
             });
         }
-        const existingName = products.find((product) => product.name.toLowerCase() === name.toLowerCase());
-        if (existingName) {
-            return res.status(400).json({ success: false, message: "product name already exists" });
-        }
-        const price = req.body.price;
-        if (typeof price !== "number" || price < 0) {
-            return res.status(400).json({
-                success: false,
-                message: "Price must be a non-negative number"
-            });
-        }
-        const stock = req.body.stock;
-        if (!Number.isInteger(stock) || stock < 0) {
-            return res.status(400).json({
-                success: false,
-                message: "Stock must be a non-negative integer"
-            });
-        }
-        req.product = product;
+
         next();
     }
     catch (error) {
-        res.status(500).json({ success: false, message: error?.message || "Internal server error" });
+        return res.status(500).json({ success: false, message: error?.message || "Internal server error" });
     }
 }
 module.exports = { validateUpdateProduct, validateProduct };

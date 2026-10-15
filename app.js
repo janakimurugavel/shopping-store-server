@@ -1,14 +1,18 @@
 require("dotenv").config();
 const express = require("express");
+const cors = require("cors");
 const app = express();
 const { connectToDatabase,
     closeDatabaseConnection } = require("./config/db");
+const path = require("path");
 const productRoutes = require("./routes/productRoutes");
 const categoryRoutes = require("./routes/categoryRoutes");
 const cartRoutes = require("./routes/cartRoutes");
 const authRoutes = require("./routes/authRoutes");
 
+app.use(cors());
 app.use(express.json());
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use("/auth", authRoutes);
 
 app.use("/products", productRoutes);
